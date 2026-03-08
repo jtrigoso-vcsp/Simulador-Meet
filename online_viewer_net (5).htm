@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador_Meet_Interactivo_2026</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body {
+            line-height: 1.15;
+            background-color: #111;
+            color: white;
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            margin: 0;
+            overflow: hidden;
+        }
+        .blurred-avatar { filter: blur(12px); opacity: 0.6; }
+        .panel-transition { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .modal-overlay { background-color: rgba(0, 0, 0, 0.8); backdrop-filter: blur(8px); }
+        p, span, h1, h2, h3, h4 { margin: 0; padding: 0; }
+        .tooltip { position: relative; }
+        .tooltip:hover::after {
+            content: attr(data-tip);
+            position: absolute;
+            bottom: 120%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #333;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            white-space: nowrap;
+            z-index: 100;
+        }
+    </style>
+</head>
+<body class="h-screen flex flex-col">
+
+    <!-- Banner de Presentación -->
+    <div id="presenting-banner" class="hidden bg-blue-700 py-2 px-6 flex justify-between items-center z-50 shadow-lg animate-bounce-short">
+        <div class="flex items-center gap-3">
+            <i data-lucide="monitor-up" class="w-5 h-5 animate-pulse"></i>
+            <span class="text-sm font-bold tracking-tight">Presentando pantalla para la asignatura de Química</span>
+        </div>
+        <button onclick="stopPresenting()" class="bg-white text-blue-800 px-4 py-1 rounded-md text-[10px] font-black uppercase hover:bg-gray-100 transition-all">Dejar de presentar</button>
+    </div>
+
+    <!-- Área Principal -->
+    <main class="flex-grow flex relative overflow-hidden">
+        <div id="main-content" class="flex-grow p-4 transition-all duration-300">
+            <div id="grid-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 auto-rows-fr gap-4 h-full">
+                <!-- Generado por JS -->
+            </div>
+        </div>
+
+        <!-- Panel Lateral -->
+        <aside id="side-panel" class="hidden w-80 md:w-96 bg-white text-gray-900 absolute right-0 top-0 bottom-0 shadow-2xl flex flex-col z-30 panel-transition translate-x-full border-l border-gray-200">
+            <div class="p-4 border-b flex justify-between items-center bg-gray-50">
+                <h3 id="panel-title" class="font-bold text-lg text-slate-800">Panel</h3>
+                <button onclick="togglePanel(null)" class="p-2 hover:bg-gray-200 rounded-full transition-colors text-gray-400">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div id="panel-content" class="flex-grow overflow-y-auto p-5 scrollbar-hide">
+                <!-- Contenido dinámico -->
+            </div>
+        </aside>
+    </main>
+
+    <!-- Barra de Control Inferior -->
+    <footer class="h-20 bg-[#1a1a1a] flex items-center justify-between px-6 border-t border-gray-800 z-40 relative">
+        <div class="hidden lg:flex flex-col text-left">
+            <span id="live-clock" class="text-sm font-bold tracking-tight text-gray-200">--:-- --</span>
+            <span class="text-[10px] uppercase font-black tracking-[0.2em] text-gray-500">ppd-uayp-bfn</span>
+        </div>
+
+        <!-- Controles Centrales -->
+        <div class="flex items-center gap-3">
+            <button id="btn-mic" onclick="toggleMic()" class="p-3.5 rounded-full bg-[#3c4043] hover:bg-[#4a4e52] tooltip" data-tip="Activar/Desactivar micro (Ctrl+D)">
+                <i data-lucide="mic" class="w-5 h-5"></i>
+            </button>
+            <button id="btn-cam" onclick="toggleCam()" class="p-3.5 rounded-full bg-[#3c4043] hover:bg-[#4a4e52] tooltip" data-tip="Activar/Desactivar cámara (Ctrl+E)">
+                <i data-lucide="video" class="w-5 h-5"></i>
+            </button>
+            <button id="btn-present" onclick="openPresentModal()" class="p-3.5 rounded-full bg-[#3c4043] hover:bg-[#4a4e52] tooltip" data-tip="Presentar pantalla">
+                <i data-lucide="monitor-up" class="w-5 h-5"></i>
+            </button>
+            <button id="btn-hand" onclick="toggleHand()" class="p-3.5 rounded-full bg-[#3c4043] hover:bg-[#4a4e52] tooltip" data-tip="Levantar la mano">
+                <i data-lucide="hand" class="w-5 h-5"></i>
+            </button>
+            <button id="btn-more" onclick="toggleMoreMenu()" class="p-3.5 rounded-full bg-[#3c4043] hover:bg-[#4a4e52]">
+                <i data-lucide="more-vertical" class="w-5 h-5"></i>
+            </button>
+            <button onclick="endMeeting()" class="p-4 rounded-full bg-red-600 hover:bg-red-700 transition-all ml-2 shadow-lg active:scale-90">
+                <i data-lucide="phone-off" class="w-6 h-6"></i>
+            </button>
+        </div>
+
+        <!-- Herramientas Derecha -->
+        <div class="flex items-center gap-1 md:gap-3">
+            <button onclick="togglePanel('info')" class="p-3 rounded-full hover:bg-[#3c4043] text-gray-400" id="tool-info">
+                <i data-lucide="info" class="w-5 h-5"></i>
+            </button>
+            <button onclick="togglePanel('people')" class="p-3 rounded-full hover:bg-[#3c4043] text-gray-400 relative" id="tool-people">
+                <i data-lucide="users" class="w-5 h-5"></i>
+                <span class="absolute top-1 right-1 w-2 h-2 bg-blue-500 rounded-full border border-[#1a1a1a]"></span>
+            </button>
+            <button onclick="togglePanel('chat')" class="p-3 rounded-full hover:bg-[#3c4043] text-gray-400 relative" id="tool-chat">
+                <i data-lucide="message-square" class="w-5 h-5"></i>
+                <div id="chat-badge" class="hidden absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full border border-[#1a1a1a]"></div>
+            </button>
+            <button onclick="togglePanel('activities')" class="p-3 rounded-full hover:bg-[#3c4043] text-gray-400" id="tool-activities">
+                <i data-lucide="shapes" class="w-5 h-5"></i>
+            </button>
+            <button onclick="togglePanel('security')" class="p-3 rounded-full text-blue-400 hover:bg-[#3c4043]" id="tool-security">
+                <i data-lucide="shield-check" class="w-5 h-5"></i>
+            </button>
+        </div>
+    </footer>
+
+    <!-- Modales -->
+    <div id="present-modal" class="hidden modal-overlay fixed inset-0 z-[60] flex items-center justify-center p-4">
+        <div class="bg-white text-gray-900 w-full max-w-[400px] rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in duration-200">
+            <div class="p-6 flex justify-between items-center border-b border-gray-100">
+                <h3 class="text-xl font-medium tracking-tight">Presentar ahora</h3>
+                <button onclick="closePresentModal()"><i data-lucide="x" class="w-5 h-5 text-gray-400"></i></button>
+            </div>
+            <div class="p-2 pb-4">
+                <button onclick="startPresentation('screen')" class="w-full flex items-center gap-5 p-4 hover:bg-gray-50 rounded-xl group transition-all">
+                    <i data-lucide="screen-share" class="text-gray-500 group-hover:text-blue-600"></i>
+                    <div><p class="text-sm font-bold text-gray-800">Toda tu pantalla</p><p class="text-xs text-gray-500">Ideal para la asignatura de Tecnología.</p></div>
+                </button>
+                <button onclick="startPresentation('window')" class="w-full flex items-center gap-5 p-4 hover:bg-gray-50 rounded-xl group transition-all">
+                    <i data-lucide="app-window" class="text-gray-500 group-hover:text-blue-600"></i>
+                    <div><p class="text-sm font-bold text-gray-800">Una ventana</p><p class="text-xs text-gray-500">Comparte solo un documento de la física.</p></div>
+                </button>
+                <button onclick="startPresentation('tab')" class="w-full flex items-center gap-5 p-4 hover:bg-gray-50 rounded-xl group transition-all">
+                    <i data-lucide="globe" class="text-gray-500 group-hover:text-blue-600"></i>
+                    <div><p class="text-sm font-bold text-gray-800">Una pestaña</p><p class="text-xs text-gray-500">Recomendado para video (mejor audio).</p></div>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Menú Opciones -->
+    <div id="more-menu" class="hidden absolute left-[54%] -translate-x-1/2 bottom-24 bg-white text-gray-900 w-64 rounded-xl shadow-2xl z-[60] py-2 border border-gray-100 animate-in slide-in-from-bottom duration-200">
+        <button onclick="toggleBlur()" class="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors">
+            <i data-lucide="sparkles" class="w-5 h-5 text-blue-600"></i>
+            <span id="blur-text" class="text-sm font-medium">Aplicar desenfoque de fondo</span>
+        </button>
+        <button class="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors border-t border-gray-50 text-gray-600">
+            <i data-lucide="layout-grid" class="w-5 h-5"></i>
+            <span class="text-sm font-medium">Cambiar diseño (Mosaico)</span>
+        </button>
+    </div>
+
+    <!-- Pantalla Final -->
+    <div id="end-screen" class="hidden fixed inset-0 bg-[#202124] flex items-center justify-center text-white p-6 z-[100]">
+        <div class="max-w-md text-center">
+            <div class="w-20 h-20 bg-red-600 rounded-full flex items-center justify-center mx-auto mb-6"><i data-lucide="phone-off" class="w-10 h-10"></i></div>
+            <h1 class="text-3xl font-bold mb-2 tracking-tight">Has finalizado la sesión</h1>
+            <p class="text-gray-400 mb-8 leading-[1.15]">Recuerda publicar los apuntes de la asignatura de Matemáticas en Google Classroom.</p>
+            <div class="flex gap-4 justify-center">
+                <button onclick="location.reload()" class="px-8 py-2.5 border border-gray-600 rounded-full hover:bg-gray-800 transition-colors font-bold uppercase text-xs">Volver a entrar</button>
+                <button class="px-8 py-2.5 bg-blue-600 rounded-full hover:bg-blue-700 transition-colors font-bold uppercase text-xs">Ir a inicio</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let state = {
+            mic: true, cam: true, hand: false, blurred: false,
+            activePanel: null, presentingMode: null, 
+            security: { access: true, share: true, chat: true },
+            messages: []
+        };
+
+        const participants = [
+            { id: 1, name: "Javier Trigoso (Tú)", color: "bg-indigo-600", initial: "JT", isUser: true },
+            { id: 2, name: "Ana García", color: "bg-emerald-600", initial: "AG", hand: true },
+            { id: 3, name: "Carlos Ruiz", color: "bg-amber-600", initial: "CR", micOff: false },
+            { id: 4, name: "María López", color: "bg-rose-600", initial: "ML", micOff: true },
+            { id: 5, name: "Roberto Díaz", color: "bg-cyan-600", initial: "RD", micOff: true },
+            { id: 6, name: "Lucía Torres", color: "bg-violet-600", initial: "LT", micOff: true },
+        ];
+
+        function updateClock() {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+            document.getElementById('live-clock').innerText = timeStr;
+        }
+
+        function init() {
+            updateClock();
+            setInterval(updateClock, 1000);
+            renderParticipants();
+            lucide.createIcons();
+        }
+
+        function renderParticipants() {
+            const container = document.getElementById('grid-container');
+            container.innerHTML = '';
+            
+            if (state.presentingMode) {
+                container.className = "grid grid-cols-4 grid-rows-4 gap-4 h-full";
+                const presDiv = document.createElement('div');
+                presDiv.className = "col-span-3 row-span-4 bg-[#202124] rounded-2xl border-2 border-blue-500/30 flex flex-col items-center justify-center relative overflow-hidden";
+                presDiv.innerHTML = getPresentationHTML();
+                container.appendChild(presDiv);
+                participants.slice(0, 4).forEach(p => container.appendChild(createTile(p, true)));
+            } else {
+                container.className = "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 auto-rows-fr gap-4 h-full";
+                participants.forEach(p => container.appendChild(createTile(p, false)));
+            }
+            lucide.createIcons();
+        }
+
+        function createTile(p, isSmall) {
+            const div = document.createElement('div');
+            div.className = `relative rounded-xl flex flex-col items-center justify-center border border-white/5 bg-[#202124] overflow-hidden shadow-lg`;
+            const avatarClass = p.isUser && state.blurred ? 'blurred-avatar' : '';
+            const sizeClass = isSmall ? 'w-14 h-14 text-sm' : 'w-24 h-24 text-2xl';
+            const micOff = (p.isUser && !state.mic) || p.micOff;
+
+            div.innerHTML = `
+                <div class="rounded-full flex items-center justify-center font-bold shadow-inner ${sizeClass} ${avatarClass} ${p.color}">${p.initial}</div>
+                <div class="absolute bottom-3 left-3 flex items-center gap-2 bg-black/40 backdrop-blur-md px-2 py-1 rounded-lg max-w-[85%]">
+                    <span class="text-[10px] font-medium truncate">${p.name}</span>
+                    ${(p.isUser && state.hand) || p.hand ? '<i data-lucide="hand" class="w-3 h-3 text-yellow-400"></i>' : ''}
+                </div>
+                <div class="absolute top-3 right-3">
+                    ${micOff ? '<div class="bg-red-500 p-1 rounded-full"><i data-lucide="mic-off" class="w-3 h-3"></i></div>' : ''}
+                </div>
+            `;
+            return div;
+        }
+
+        function getPresentationHTML() {
+            if (state.presentingMode === 'tab') return `
+                <div class="text-center"><div class="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center mb-4 mx-auto shadow-xl"><i data-lucide="play" fill="white"></i></div><p class="font-bold">Asignatura de Música: Concierto en vivo</p><p class="text-xs text-green-400 mt-2 flex items-center justify-center gap-1"><i data-lucide="volume-2" class="w-3 h-3"></i> Audio digital optimizado</p></div>`;
+            return `<div class="text-center"><i data-lucide="monitor-up" class="w-16 h-16 text-blue-400 mb-4 opacity-30 mx-auto"></i><p class="text-xl font-bold tracking-tight">Estás presentando para la asignatura de Historia</p><p class="text-xs text-gray-500 mt-2">Los alumnos ven tu pantalla completa</p></div>`;
+        }
+
+        function toggleMic() {
+            state.mic = !state.mic;
+            const btn = document.getElementById('btn-mic');
+            btn.className = `p-3.5 rounded-full shadow-lg ${state.mic ? 'bg-[#3c4043]' : 'bg-red-500'}`;
+            btn.innerHTML = `<i data-lucide="${state.mic ? 'mic' : 'mic-off'}" class="w-5 h-5"></i>`;
+            renderParticipants();
+        }
+
+        function toggleCam() {
+            state.cam = !state.cam;
+            const btn = document.getElementById('btn-cam');
+            btn.className = `p-3.5 rounded-full shadow-lg ${state.cam ? 'bg-[#3c4043]' : 'bg-red-500'}`;
+            btn.innerHTML = `<i data-lucide="${state.cam ? 'video' : 'video-off'}" class="w-5 h-5"></i>`;
+            renderParticipants();
+        }
+
+        function toggleHand() {
+            state.hand = !state.hand;
+            document.getElementById('btn-hand').className = `p-3.5 rounded-full shadow-lg ${state.hand ? 'bg-yellow-500 text-black' : 'bg-[#3c4043]'}`;
+            renderParticipants();
+        }
+
+        function toggleBlur() {
+            state.blurred = !state.blurred;
+            document.getElementById('blur-text').innerText = state.blurred ? 'Quitar desenfoque' : 'Aplicar desenfoque de fondo';
+            document.getElementById('more-menu').classList.add('hidden');
+            renderParticipants();
+        }
+
+        function togglePanel(panel) {
+            const sidePanel = document.getElementById('side-panel');
+            if (state.activePanel === panel || panel === null) {
+                state.activePanel = null;
+                sidePanel.classList.add('translate-x-full');
+                setTimeout(() => sidePanel.classList.add('hidden'), 300);
+            } else {
+                state.activePanel = panel;
+                sidePanel.classList.remove('hidden');
+                setTimeout(() => sidePanel.classList.remove('translate-x-full'), 10);
+                updatePanelContent(panel);
+                if (panel === 'chat') document.getElementById('chat-badge').classList.add('hidden');
+            }
+        }
+
+        function toggleSecurity(feature) {
+            state.security[feature] = !state.security[feature];
+            updatePanelContent('security');
+        }
+
+        function simMessage() {
+            state.messages.push({ user: "Ana García", text: "¿Profe, esto entra en el examen de Química?", time: "6:18 P.M." });
+            if (state.activePanel !== 'chat') document.getElementById('chat-badge').classList.remove('hidden');
+            if (state.activePanel === 'chat') updatePanelContent('chat');
+        }
+
+        function updatePanelContent(panel) {
+            const title = document.getElementById('panel-title');
+            const content = document.getElementById('panel-content');
+            switch(panel) {
+                case 'info':
+                    title.innerText = "Detalles de la reunión";
+                    content.innerHTML = `<div class="space-y-4"><p class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Enlace de acceso</p><div class="bg-gray-100 p-3 rounded-xl flex justify-between items-center"><span class="text-sm font-mono truncate mr-2">ppd-uayp-bfn</span><i data-lucide="copy" class="w-4 h-4 text-blue-600"></i></div><p class="text-[10px] text-gray-500 leading-[1.15]">Comparte este código con los docentes de la asignatura de Matemáticas.</p></div>`;
+                    break;
+                case 'people':
+                    title.innerText = "Personas";
+                    content.innerHTML = `<button class="w-full py-3 bg-blue-50 text-blue-700 rounded-xl font-bold text-sm mb-6 flex items-center justify-center gap-2"><i data-lucide="user-plus" class="w-4 h-4"></i> Añadir personas</button><div class="space-y-4">${participants.map(p => `<div class="flex items-center justify-between"><div class="flex items-center gap-3"><div class="w-8 h-8 rounded-full ${p.color} text-white flex items-center justify-center text-xs font-bold">${p.initial}</div><p class="text-sm font-bold text-slate-700">${p.name}</p></div><i data-lucide="${(p.isUser && !state.mic) || p.micOff ? 'mic-off' : 'mic'}" class="w-4 h-4 text-gray-400"></i></div>`).join('')}</div>`;
+                    break;
+                case 'chat':
+                    title.innerText = "Chat de la clase";
+                    content.innerHTML = `
+                        <button onclick="simMessage()" class="w-full py-2 bg-indigo-600 text-white rounded-lg text-xs font-bold mb-4">Simular duda de alumno</button>
+                        <div class="space-y-4">
+                            ${state.messages.map(m => `<div class="bg-gray-50 p-3 rounded-xl"><div class="flex justify-between mb-1"><span class="text-[10px] font-black text-indigo-600 uppercase tracking-tighter">${m.user}</span><span class="text-[9px] text-gray-400">${m.time}</span></div><p class="text-xs text-gray-700 leading-[1.15]">${m.text}</p></div>`).join('')}
+                            ${state.messages.length === 0 ? '<p class="text-center text-gray-400 text-sm italic mt-10">No hay mensajes aún. Fomenta el chat para la asignatura de Historia.</p>' : ''}
+                        </div>
+                    `;
+                    break;
+                case 'security':
+                    title.innerText = "Controles del organizador";
+                    content.innerHTML = `
+                        <div class="space-y-8">
+                            <div class="bg-blue-50 p-4 rounded-xl"><h4 class="text-[10px] font-black uppercase text-blue-800 mb-4 tracking-widest">Gestión de acceso</h4><div class="flex items-center justify-between"><span class="text-sm font-bold">Acceso rápido</span><div onclick="toggleSecurity('access')" class="w-10 h-5 ${state.security.access ? 'bg-blue-600' : 'bg-gray-300'} rounded-full relative cursor-pointer transition-colors"><div class="absolute ${state.security.access ? 'right-1' : 'left-1'} top-1 w-3 h-3 bg-white rounded-full"></div></div></div><p class="text-[10px] text-blue-700 mt-2">Recomendado para la asignatura de Matemáticas: nadie entra sin tu permiso.</p></div>
+                            <div class="px-1"><h4 class="text-[10px] font-black uppercase text-gray-400 mb-4 tracking-widest">Permisos del alumnado</h4>
+                                <div class="space-y-5">
+                                    <div class="flex items-center justify-between"><span class="text-sm">Compartir pantalla</span><div onclick="toggleSecurity('share')" class="w-10 h-5 ${state.security.share ? 'bg-blue-600' : 'bg-gray-300'} rounded-full relative cursor-pointer"><div class="absolute ${state.security.share ? 'right-1' : 'left-1'} top-1 w-3 h-3 bg-white rounded-full"></div></div></div>
+                                    <div class="flex items-center justify-between"><span class="text-sm">Enviar chat</span><div onclick="toggleSecurity('chat')" class="w-10 h-5 ${state.security.chat ? 'bg-blue-600' : 'bg-gray-300'} rounded-full relative cursor-pointer"><div class="absolute ${state.security.chat ? 'right-1' : 'left-1'} top-1 w-3 h-3 bg-white rounded-full"></div></div></div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    break;
+            }
+            lucide.createIcons();
+        }
+
+        function openPresentModal() { if (state.presentingMode) stopPresenting(); else document.getElementById('present-modal').classList.remove('hidden'); }
+        function closePresentModal() { document.getElementById('present-modal').classList.add('hidden'); }
+        function toggleMoreMenu() { document.getElementById('more-menu').classList.toggle('hidden'); }
+        function startPresentation(mode) { state.presentingMode = mode; document.getElementById('presenting-banner').classList.remove('hidden'); document.getElementById('btn-present').className = "p-3.5 rounded-full bg-blue-600 text-white"; closePresentModal(); renderParticipants(); }
+        function stopPresenting() { state.presentingMode = null; document.getElementById('presenting-banner').classList.add('hidden'); document.getElementById('btn-present').className = "p-3.5 rounded-full bg-[#3c4043]"; renderParticipants(); }
+        function endMeeting() { document.getElementById('end-screen').classList.remove('hidden'); }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
